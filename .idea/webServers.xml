@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="d8996c9e-b381-4596-9b94-f1538138caf8" name="orb">
+        <fileTransfer accessType="SFTP" host="127.0.0.1" port="32222" sshConfigId="86c8c529-f656-45fc-b78f-722ef9cb2a0b" sshConfig="2333hunyuan@127.0.0.1:32222 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

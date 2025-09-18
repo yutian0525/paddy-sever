@@ -24,8 +24,8 @@ CORS(app)  # 添加跨域支持
 # 设置允许上传的文件格式
 ALLOW_EXTENSIONS = ['png', 'jpg', 'jpeg']
 
-model_grow = YOLO('paddy-server/models/paddy-grow.pt')  # load a custom model
-model_disease = YOLO('paddy-server/models/paddy-disease.pt')
+model_grow = YOLO('models/paddy-grow.pt')  # load a custom model
+model_disease = YOLO('models/paddy-disease.pt')
 
 def mymovefile(srcfile,dstpath):                       # 移动函数
     if not os.path.isfile(srcfile):
@@ -116,6 +116,11 @@ def uploads_d():
 
 @app.route("/predict_image", methods=['POST', "GET"])
 def predict_img():
+    print("--- Request Headers ---")
+    print(request.headers)
+    print("--- Request Data ---")
+    print(request.data) # raw request body
+    print("--- End Request Info ---")
     return_dict = {"code": '200', "data": "", "message": "",}
     if request.args is None:
         return_dict['code'] = '5004'
@@ -126,19 +131,53 @@ def predict_img():
     modelid = get_data.get("modelid")
     print(modelid)
     if modelid == "1":
-        pic_path = os.path.join("paddy-server/static/image/grow/", pic_name)
+        pic_path = os.path.join("static/image/grow/", pic_name) # Corrected path
+        print(f"Constructed pic_path: {pic_path}")
+        if not os.path.exists(pic_path):
+            print(f"Error: File not found at {pic_path}")
+            return_dict['code'] = '500'
+            return_dict['message'] = f"File not found at {pic_path}"
+            return json.dumps(return_dict, ensure_ascii=False)
         results = model_grow(pic_path, save=True)  # predict on an image
-        mymovefile(os.path.join(results[0].save_dir, pic_name),"paddy-server/static/predict_image/grow/")
+        print(f"results[0].save_dir: {results[0].save_dir}") # Log save_dir
+        # List files in save_dir to see the actual saved file name
+        try:
+            saved_files = os.listdir(results[0].save_dir)
+            print(f"Files in save_dir ({results[0].save_dir}): {saved_files}")
+        except Exception as e:
+            print(f"Error listing files in save_dir: {e}")
+
+        # Use the actual saved file name with .jpg extension
+        saved_file_name = os.path.splitext(pic_name)[0] + ".jpg"
+        mymovefile(os.path.join(results[0].save_dir, saved_file_name),"paddy-server/static/predict_image/grow/")
         xx = results[0].probs.data.tolist()
         print(results[0].names)
         return_dict['data'] = {"names":results[0].names,"speed":results[0].speed,"result":results[0].names[xx.index(max(xx))]}
     else:
-        pic_path = os.path.join("paddy-server/static/image/disease/", pic_name)
+        pic_path = os.path.join("static/image/disease/", pic_name) # Corrected path
+        print(f"Constructed pic_path for disease: {pic_path}") # Add log
+        if not os.path.exists(pic_path): # Add file existence check
+            print(f"Error: File not found at {pic_path}")
+            return_dict['code'] = '500'
+            return_dict['message'] = f"File not found at {pic_path}"
+            return json.dumps(return_dict, ensure_ascii=False)
+
         results = model_disease(pic_path, save=True)  # predict on an image
-        mymovefile(os.path.join(results[0].save_dir, pic_name),"paddy-server/static/predict_image/disease/")
+        print(f"results[0].save_dir for disease: {results[0].save_dir}") # Log save_dir
+        # List files in save_dir to see the actual saved file name
+        try:
+            saved_files = os.listdir(results[0].save_dir)
+            print(f"Files in save_dir ({results[0].save_dir}) for disease: {saved_files}")
+        except Exception as e:
+            print(f"Error listing files in save_dir for disease: {e}")
+
+        # Use the actual saved file name with .jpg extension (assuming it saves as jpg)
+        saved_file_name = os.path.splitext(pic_name)[0] + ".jpg"
+        mymovefile(os.path.join(results[0].save_dir, saved_file_name),"paddy-server/static/predict_image/disease/")
         print(results[0].boxes)
         return_dict['data'] = {"names":results[0].names,"speed":results[0].speed}
     return_dict['message'] = '预测完成'
+    print(f"Returning to Go: {return_dict}") # Log the return dictionary
     return json.dumps(return_dict, ensure_ascii=False)
 
 
@@ -184,4 +223,4 @@ def userimg(imageId):
         result = Response(image, mimetype="image/jpg")
         return result
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=5050, debug=True)
